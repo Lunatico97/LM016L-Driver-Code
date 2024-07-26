@@ -1,0 +1,68 @@
+
+//Making a LCD Driver for LM160L 
+//Author: Diwas Adhikari
+//For those who don't want to download <LiquidCrystal.h> library and use LCD display
+--------------------------------------------------------------------------------------------------------------------------------
+//Generic Write Process in LM016L (4-bit mode) : 
+------------------------------------------------
+  //Set register select(RS) to either data(1) or command(0)
+  //Set upper nibble of data/cmd  to upper ports (D7 -D4)
+  //Set enable(E) high for around 4 cycles by delaying it and reset enable
+  //Set lower nibble of data/cmd  to upper ports (D7 -D4) 
+  //Set enable(E) high for around 4 cycles by delaying it and reset enable again
+  //Delay again for around 2ms
+  //{Optional - To configure R/W pin if you use it for read operations, you can set it high(1) and delay again for 2ms}
+
+//Commands :
+------------
+/*Clear : 0 0 0 0 0 0 0 1 */
+--------------------------------------------------------------------------------------------------------------------------------
+/*Cursor Return : 0 0 0 0 0 0 1 X */
+--------------------------------------------------------------------------------------------------------------------------------
+/*Function Set : 0 0 1 DL N F X X
+                  where, 
+                  | DL - Data Length (0 - 4 bit | 1 - 8 bit)|
+                  | N - Number of lines (0 - 1 line | 1 -  2 lines) | 
+                  | F - Font (0 - 5*8 dots | 1 - 5*10 dots) |
+*/
+--------------------------------------------------------------------------------------------------------------------------------
+/*Display Set : 0 0 0 0 1 D C B 
+                  where, 
+                  | D - Display (0 - OFF | 1 - ON)|
+                  | C - Cursor (0 - OFF | 1 - ON)| 
+                  | B - Blink Cursor (0 - OFF | 1 - ON)| 
+*/
+--------------------------------------------------------------------------------------------------------------------------------
+/*Entry Set : 0 0 0 0 0 1 I/D S 
+                  where, 
+                  | I/D - Cursor Position (0 - Increment/Right | 1 - Decrement/Left)|
+                  | S - Shift (0 - Disable | 1 - Enable)|  
+*/
+--------------------------------------------------------------------------------------------------------------------------------
+/*DDRAM Set : 1 A A A A A A A {DDRAM holds the address in matrix to place a manual character i.e. display data }
+                  where, 
+                  | A - Address bit for a character |  
+		  Since, the set value is 1AAAAAAA i.e. we need to add 10000000 (0x80) to address and set the address.
+		  Also, to get to second row, as 8*5=40 addresses are already allocated for CGRAM, second row starts from:
+		      Position + DD offset(due to DD address) + Row offset(due to CG address) = 0x00 | 0x80 | 0x40 = 0xC0 
+		  That also can signify that if you want a new line, execute a hex command of 0xC0
+*/
+--------------------------------------------------------------------------------------------------------------------------------
+/*CGRAM Set : 0 1 A A A A A A {CGRAM holds the address of a pixel for a character i.e. character generator }
+                  where, 
+                  | A - Address bit for a pixel |  
+
+          -> For example : if you chose a 5*8 font and to create a character like :
+                                                                . . # . .      - 00100 (0x04)
+                                                                . # # # .      - 01110 (0x0E)
+                                                                # . # . #      - 10101 (0x15)
+             In this character, among 8 rows, only three are required so, other addresses are not fed.
+             Since, the set value is 01AAAAAA i.e. we need to set the cursor at 01000000 (0x40) for every row address to be set for character. 
+*/
+--------------------------------------------------------------------------------------------------------------------------------  
+/*Cursor Shift : 0 0 0 1 S/C R/L X X (Doesn't affect the data content of DDRAM)
+                  where, 
+                  | S/C - (0 - Shift | 1 - Cursor)|
+                  | R/L - (0 - Right | 1 - Left)|  
+*/
+--------------------------------------------------------------------------------------------------------------------------------
